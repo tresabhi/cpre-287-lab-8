@@ -1,19 +1,14 @@
-import time
+import digitalio
 import board
-import analogio
-from node_config import *
-import sensing
-import temperature_measurement_node
+import time
 
-if node_type == NODE_TYPE_RAW:
-    while True:
-        adc = sensing._lm35_pin.value
-        v = adc * sensing.adc_to_V
-        T = sensing.V_to_c * v
+led_blue = digitalio.DigitalInOut(board.D13)
+led_red = digitalio.DigitalInOut(board.D12)
 
-        print(f"adc = {adc}\tv = {v:.3g}V\tT = {T:.3g}deg")
+led_blue.direction = digitalio.Direction.OUTPUT
+led_red.direction = digitalio.Direction.OUTPUT
 
-        time.sleep(0.1)
-
-elif node_type == NODE_TYPE_TEMPERATURE:
-    temperature_measurement_node.loop()
+while True:
+    led_red.value = led_blue.value
+    led_blue.value = not led_blue.value
+    time.sleep(1)
