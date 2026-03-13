@@ -90,8 +90,8 @@ class Simulation:
             T = self.zone_temps[id]
             k = zone_k[id]
 
-            heating_speed = 2
-            cooling_speed = -2
+            heating_speed = 1
+            cooling_speed = -1
             # cooling_damper = self.cooling_dampers[id] / 100
             # heating_damper = self.heating_dampers[id] / 100
             heating_damper = 1 if self.heating else 0
