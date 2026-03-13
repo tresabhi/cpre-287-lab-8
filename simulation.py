@@ -11,7 +11,7 @@ SIM_SPEED = 1
 TEMP_RANGE = 10
 TEMP_AVG = 30
 
-TEMPERATURE_THRESHOLD = 1
+TEMPERATURE_THRESHOLD = 2
 
 # k is the volume of the room divided by the surface area exposed to the outside
 # so we need to divide it by some constant to get a reasonable coefficient
