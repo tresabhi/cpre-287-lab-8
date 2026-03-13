@@ -26,4 +26,4 @@ if __name__ == "__main__":
             f"Cooling: {sim.cooling}",
         ]
 
-        # print("\t".join(values))
+        print("\t".join(values))

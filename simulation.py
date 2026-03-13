@@ -9,15 +9,15 @@ from math import sin, pi
 SIM_SPEED = 1
 
 TEMP_RANGE = 10
-TEMP_AVG = 5
+TEMP_AVG = 30
 
-TEMPERATURE_THRESHOLD = 5
+TEMPERATURE_THRESHOLD = 1
 
 # k is the volume of the room divided by the surface area exposed to the outside
 # so we need to divide it by some constant to get a reasonable coefficient
 # for the derivative of the temperatures respect to time
 TARGET_TEMP = 25
-START_TEMP = TEMP_AVG - TEMP_RANGE
+START_TEMP = TEMP_AVG
 
 # The Simulation(R)
 _sim = None
@@ -90,12 +90,12 @@ class Simulation:
             T = self.zone_temps[id]
             k = zone_k[id]
 
-            heating_speed = 0
-            cooling_speed = -0
+            heating_speed = 2
+            cooling_speed = -2
             # cooling_damper = self.cooling_dampers[id] / 100
             # heating_damper = self.heating_dampers[id] / 100
-            heating_damper = heating_speed if self.heating else 0
-            cooling_damper = cooling_speed if self.cooling else 0
+            heating_damper = 1 if self.heating else 0
+            cooling_damper = 1 if self.cooling else 0
 
             # units for dT/dt = (1 / s) * kelvin = kelvin / s
             dT_dt = (
@@ -126,13 +126,21 @@ class Simulation:
 
         average_temp /= num_zones
 
-        self.heating = average_temp < TARGET_TEMP
+        if self.heating:
+            self.heating = average_temp <= TARGET_TEMP
+        else:
+            self.heating = average_temp <= TARGET_TEMP - TEMPERATURE_THRESHOLD
+
+        if self.cooling:
+            self.cooling = average_temp >= TARGET_TEMP
+        else:
+            self.cooling = average_temp >= TARGET_TEMP + TEMPERATURE_THRESHOLD
 
         # self.heating = (
         #     (
         #         # heater is already on; wait till desired temp is reached
         #         average_temp
-        #         >= TARGET_TEMP
+        #         >= TARGET_TEMP + TEMPERATURE_THRESHOLD
         #     )
         #     if self.heating
         #     else (
