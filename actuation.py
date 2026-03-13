@@ -1,8 +1,6 @@
 from node_config import *
 import digitalio
-
-if node_type != NODE_TYPE_SIMULATED:
-    import board
+import board
 
 led_blue = None
 led_red = None
@@ -29,10 +27,7 @@ def set_damper(zone, percent):
 
 # ------------Heat/cool control-----------#
 # TODO: pin configuration
-if node_type == NODE_TYPE_SIMULATED:
-    pass
-
-elif board.board_id == "unexpectedmaker_feathers2":
+if node_type == NODE_TYPE_SIMULATED and board.board_id == "unexpectedmaker_feathers2":
     # Initialize digital outputs for heating, cooling, and the circulation fan
     # Use pins D13 for heat, D9 and D6 for cooling, and D12 for the fan
 

@@ -1,9 +1,8 @@
-from node_config import num_zones, zone_k, zone_names
+from node_config import num_zones, zone_k
 import time
 from utils import c_to_f
-from actuation import set_damper as _set_damper
+import actuation
 from math import sin, pi
-from sensing import *
 
 # define some values?
 
@@ -11,6 +10,8 @@ SIM_SPEED = 1
 
 TEMP_RANGE = 10
 TEMP_AVG = 5
+
+TEMPERATURE_THRESHOLD = 5
 
 # k is the volume of the room divided by the surface area exposed to the outside
 # so we need to divide it by some constant to get a reasonable coefficient
@@ -27,8 +28,10 @@ _sim = None
 # Call "simulation.get_instance()" to get a Simulation, instead of instantiating a Simulation directly.
 def get_instance():
     global _sim
+
     if _sim is None:
         _sim = Simulation(num_zones)
+
     return _sim
 
 
@@ -40,15 +43,15 @@ class Simulation:
     cooling_dampers = [0] * num_zones
     heating_dampers = [0] * num_zones
 
+    heating = False
+    cooling = False
+
     # Initializes the simulation.
     def __init__(self, num_zones):
         # initialize additional class variables. These are probably variables that represent the state of the physical system.
 
         for id in range(num_zones):
             self.zone_temps[id] = START_TEMP
-
-        self.heating = False
-        self.cooling = False
 
     # Returns the current temperature in the zone specified by zone_id
     def get_temperature_f(self, zone_id):
@@ -58,6 +61,7 @@ class Simulation:
     # Sets the damper(s) for the zone specified by zone_id to the percentage
     # specified by percent. 0 is closed, 100 is fully open.
     def set_damper(self, type, zone_id, percent):
+        print("set damper")
         # implement
 
         if type == "cooling":
@@ -86,10 +90,13 @@ class Simulation:
             T = self.zone_temps[id]
             k = zone_k[id]
 
-            heating_speed = 1.5
-            cooling_speed = -1
-            cooling_damper = self.cooling_dampers[id] / 100
-            heating_damper = self.heating_dampers[id] / 100
+            heating_speed = 0
+            cooling_speed = -0
+            # cooling_damper = self.cooling_dampers[id] / 100
+            # heating_damper = self.heating_dampers[id] / 100
+            heating_damper = heating_speed if self.heating else 0
+            cooling_damper = cooling_speed if self.cooling else 0
+
             # units for dT/dt = (1 / s) * kelvin = kelvin / s
             dT_dt = (
                 -k * (T - self.outside_temp)
@@ -103,13 +110,42 @@ class Simulation:
             self.zone_temps[id] += dT
 
     def _update_dampers(self):
+        # for zone in range(num_zones):
+        #     zone_temp = self.zone_temps[zone]
+        #     cooling = min(1, max(0, zone_temp - TARGET_TEMP)) * 100
+        #     heating = min(1, max(0, TARGET_TEMP - zone_temp)) * 100
+
+        #     self.set_damper("cooling", zone, cooling)
+        #     self.set_damper("heating", zone, heating)
+
+        average_temp = 0
+
         for zone in range(num_zones):
             zone_temp = self.zone_temps[zone]
-            cooling = min(1, max(0, zone_temp - TARGET_TEMP)) * 100
-            heating = min(1, max(0, TARGET_TEMP - zone_temp)) * 100
+            average_temp += zone_temp
 
-            self.set_damper("cooling", zone, cooling)
-            self.set_damper("heating", zone, heating)
+        average_temp /= num_zones
+
+        self.heating = average_temp < TARGET_TEMP
+
+        # self.heating = (
+        #     (
+        #         # heater is already on; wait till desired temp is reached
+        #         average_temp
+        #         >= TARGET_TEMP
+        #     )
+        #     if self.heating
+        #     else (
+        #         # heater is off; turn it on only if temp falls beyond the threshold
+        #         average_temp
+        #         < TARGET_TEMP - TEMPERATURE_THRESHOLD
+        #     )
+        # )
+        # self.cooling = (
+        #     (average_temp <= TARGET_TEMP)
+        #     if self.cooling
+        #     else (average_temp > TARGET_TEMP + TEMPERATURE_THRESHOLD)
+        # )
 
     # Runs periodic simulation actions.
     def loop(self):
@@ -121,21 +157,5 @@ class Simulation:
         self._update_dampers()
         self._update_temps(SIM_SPEED * (time.monotonic() - self.initial_time))
 
-
-# Used for testing the simulation.
-if __name__ == "__main__":
-    sim = get_instance()
-
-    while True:
-        sim.loop()
-        time.sleep(0)
-
-        values = [
-            f"t = {sim.last_t:.2f}s\t",
-            f"Outside: {c_to_f(sim.outside_temp):.2f}°f",
-        ]
-
-        for zone in range(num_zones):
-            values.append(f"{zone_names[zone]}: {get_current_temperature_f(zone):.2f}°f")
-
-        print("\t".join(values))
+        actuation.set_heating(self.heating)
+        actuation.set_cooling(self.cooling)
